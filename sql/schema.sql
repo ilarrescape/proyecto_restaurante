@@ -1,6 +1,6 @@
 
 
-CREATE DATABASE IF NOT EXISTS restaurante_gestion
+CREATE DATABASE IF NOT EXISTS restaurante_gestion;
 
 USE restaurante_gestion;
 
