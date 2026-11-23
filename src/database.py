@@ -14,3 +14,5 @@ def make_session_factory():
     return sessionmaker(engine, expire_on_commit=False)
     #¿Cuándo se generan los commits?
     # Alta, Baja y Modificación
+
+

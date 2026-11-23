@@ -27,13 +27,13 @@ Tras ingresar, ADMIN puede crear restaurantes con ciudad, CUIT, razón social, n
 
 Los usuarios operativos requieren restaurante; ADMIN puede tener alcance global sin restaurante. No se permite que un administrador se desactive o se quite su propio rol ADMIN. Los servicios verifican la autorización independientemente de la interfaz y las operaciones se ejecutan en transacciones.
 
-| Rol | Permisos definidos |
-| --- | --- |
-| ADMIN | Restaurantes, usuarios, personal, carta, clientes, salón, pedidos y consulta |
-| GERENTE | Personal, carta, clientes, salón, pedidos y consulta |
-| CAJERO | Clientes, pedidos y consulta |
-| MOZO | Pedidos y consulta |
-| CONSULTA | Consulta |
+| Rol      | Permisos definidos                                                           |
+| -------- | ---------------------------------------------------------------------------- |
+| ADMIN    | Restaurantes, usuarios, personal, carta, clientes, salón, pedidos y consulta |
+| GERENTE  | Personal, carta, clientes, salón, pedidos y consulta                         |
+| CAJERO   | Clientes, pedidos y consulta                                                 |
+| MOZO     | Pedidos y consulta                                                           |
+| CONSULTA | Consulta                                                                     |
 
 Los permisos son conjuntos fijos definidos en `src/services/auth.py`; ADMIN los asigna mediante el rol. No hay edición individual de permisos ni tablas adicionales para ello. `has_permission` está disponible para futuros módulos, que deberán validar además el restaurante del usuario en sus consultas. Los módulos operativos todavía no están implementados.
 

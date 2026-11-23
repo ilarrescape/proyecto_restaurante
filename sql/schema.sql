@@ -73,7 +73,7 @@ CREATE TABLE IF NOT EXISTS empleado (
     fecha_nacimiento DATE NOT NULL,
     CONSTRAINT chk_empleado_dni CHECK (dni BETWEEN 1000000 AND 999999999)
 ) ENGINE=InnoDB;
-
+-- tercero
 CREATE TABLE IF NOT EXISTS restaurante_cargo_empleado (
     id_cargo INT UNSIGNED NOT NULL,
     id_condicion INT UNSIGNED NOT NULL,
@@ -102,7 +102,7 @@ CREATE TABLE IF NOT EXISTS categoria (
     descripcion_categoria VARCHAR(255) NULL,
     CONSTRAINT uq_categoria_nombre UNIQUE (nombre_categoria)
 ) ENGINE=InnoDB;
-
+-- tercero
 CREATE TABLE IF NOT EXISTS producto (
     id_producto INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
     nombre_producto VARCHAR(150) NOT NULL,
@@ -122,7 +122,7 @@ CREATE TABLE IF NOT EXISTS producto (
     INDEX idx_producto_categoria (id_categoria_producto),
     INDEX idx_producto_restaurante (cuit_restaurante)
 ) ENGINE=InnoDB;
-
+-- tercero
 CREATE TABLE IF NOT EXISTS mesa (
     id_mesa INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
     numero_referencia VARCHAR(30) NOT NULL,
@@ -240,6 +240,7 @@ CREATE TABLE IF NOT EXISTS rol (
 -- |Admin ---> restaurante Status
 -- |Super Admin ---> Visualiza todo
 
+-- tercero
 CREATE TABLE IF NOT EXISTS usuario (
     id_usuario INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
     nombre_usuario VARCHAR(80) NOT NULL,
