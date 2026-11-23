@@ -27,10 +27,7 @@ from sqlalchemy.orm import (
 class Base(DeclarativeBase):
     pass
 
-
-# -------------------------
-# MODELOS DE AUTENTICACION
-# -------------------------
+# Modelos de la tabla de usuarios y roles
 
 class Rol(Base):
     __tablename__ = "rol"
@@ -126,9 +123,9 @@ class Usuario(Base):
     restaurante: Mapped[Optional["Restaurante"]] = relationship()
 
 
-# -------------------------
-# MODELOS DE TU MODULO
-# -------------------------
+
+# modelos de mis modulos aña
+
 
 class Ciudad(Base):
     __tablename__ = "ciudad"
