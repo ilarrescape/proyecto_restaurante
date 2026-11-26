@@ -4,7 +4,7 @@ import streamlit as st
 from sqlalchemy import select
 from sqlalchemy.exc import SQLAlchemyError
 from src.database import make_session_factory
-from src.models import Usuario, Restaurante, Rol, Empleado
+from src.models import Area, Cargo, Usuario, Restaurante, Rol, Empleado
 from src.services.auth import authenticate, PERMISSIONS
 from src.services.admin import create_restaurant, create_user, update_user
 from src.services.cargo import create_cargo, delete_cargo, list_cargos, update_cargo
@@ -13,6 +13,12 @@ from src.services.tipo_comprobante import (
     delete_tipo_comprobante,
     list_tipos_comprobante,
     update_tipo_comprobante,
+)
+from src.services.areas import create_area, delete_area, list_areas, update_area
+from src.services.area_cargo import (
+    associate_area_cargo,
+    list_area_cargos,
+    remove_area_cargo,
 )
 
 st.set_page_config(page_title="Gestión de Restaurante", page_icon="🍽️")
@@ -68,7 +74,7 @@ try:
 
     section = st.sidebar.radio(
         "Administración",
-        ["Restaurantes", "Usuarios", "Cargos", "Tipos de comprobante"],
+        ["Restaurantes", "Usuarios", "Áreas", "Área-Cargo", "Cargos", "Tipos de comprobante"],
     )
     with factory() as session:
         restaurants = {r.cuit: r.nombre_fantasia for r in session.scalars(select(Restaurante))}
@@ -169,7 +175,7 @@ try:
                     delete_cargo(session, st.session_state.user_id, selected_id)
                 st.success("Cargo eliminado.")
                 st.rerun()
-    else:
+    elif section == "Tipos de comprobante":
         st.subheader("Administrar tipos de comprobante")
         with st.form("create_tipo_comprobante"):
             tipo_name = st.text_input("Nombre del tipo de comprobante", max_chars=100)
@@ -219,6 +225,119 @@ try:
                     delete_tipo_comprobante(session, st.session_state.user_id, selected_id)
                 st.success("Tipo de comprobante eliminado.")
                 st.rerun()
+    elif section == "Áreas":
+        st.subheader("Administrar áreas")
+        with st.form("create_area"):
+            area_name = st.text_input("Nombre del área", max_chars=100)
+            create = st.form_submit_button("Registrar área")
+        if create:
+            with factory.begin() as session:
+                create_area(session, st.session_state.user_id, area_name)
+            st.success("Área registrada.")
+            st.rerun()
+
+        with factory() as session:
+            areas = list_areas(session, st.session_state.user_id)
+            area_rows = [{"ID": area.id_area, "Área": area.nombre_area} for area in areas]
+        st.subheader("Áreas registradas")
+        if not areas:
+            st.info("Todavía no hay áreas registradas.")
+        else:
+            st.dataframe(area_rows, hide_index=True, use_container_width=True)
+            area_ids = [area.id_area for area in areas]
+            selected_id = st.selectbox(
+                "Seleccionar área", area_ids,
+                format_func=lambda area_id: next(
+                    area.nombre_area for area in areas if area.id_area == area_id
+                ),
+            )
+            selected = next(area for area in areas if area.id_area == selected_id)
+            with st.form(f"edit_area_{selected_id}"):
+                edited_name = st.text_input(
+                    "Modificar nombre", value=selected.nombre_area, max_chars=100
+                )
+                update = st.form_submit_button("Guardar cambios")
+            if update:
+                with factory.begin() as session:
+                    update_area(session, st.session_state.user_id, selected_id, edited_name)
+                st.success("Área actualizada.")
+                st.rerun()
+            st.caption("Al eliminar un área también se eliminan sus asociaciones con cargos.")
+            if st.button("Eliminar área seleccionada", key=f"delete_area_{selected_id}"):
+                st.session_state.confirm_delete_area = selected_id
+            if st.session_state.get("confirm_delete_area") == selected_id:
+                st.warning(f"¿Confirmás eliminar el área {selected.nombre_area} y sus asociaciones?")
+                confirm_col, cancel_col = st.columns(2)
+                if confirm_col.button("Confirmar eliminación", key=f"confirm_area_{selected_id}"):
+                    with factory.begin() as session:
+                        delete_area(session, st.session_state.user_id, selected_id)
+                    st.session_state.pop("confirm_delete_area", None)
+                    st.success("Área eliminada.")
+                    st.rerun()
+                if cancel_col.button("Cancelar", key=f"cancel_area_{selected_id}"):
+                    st.session_state.pop("confirm_delete_area", None)
+                    st.rerun()
+    else:
+        st.subheader("Asociar cargos con áreas")
+        with factory() as session:
+            areas = list(session.scalars(select(Area).order_by(Area.nombre_area)))
+            cargos = list(session.scalars(select(Cargo).order_by(Cargo.nombre_cargo)))
+        if not areas or not cargos:
+            st.info("Para administrar asociaciones, primero debe haber áreas y cargos registrados.")
+        else:
+            area_labels = {area.id_area: area.nombre_area for area in areas}
+            cargo_labels = {cargo.id_cargo: cargo.nombre_cargo for cargo in cargos}
+            with st.form("associate_area_cargo"):
+                area_id = st.selectbox("Área", list(area_labels), format_func=area_labels.get)
+                cargo_id = st.selectbox("Cargo", list(cargo_labels), format_func=cargo_labels.get)
+                associate = st.form_submit_button("Asociar cargo al área")
+            if associate:
+                with factory.begin() as session:
+                    associate_area_cargo(session, st.session_state.user_id, area_id, cargo_id)
+                st.success("Cargo asociado al área.")
+                st.rerun()
+
+            st.subheader("Consultar asociaciones")
+            filter_col1, filter_col2 = st.columns(2)
+            area_filter = filter_col1.selectbox(
+                "Filtrar por área", [None, *area_labels],
+                format_func=lambda value: "Todas las áreas" if value is None else area_labels[value],
+            )
+            cargo_filter = filter_col2.selectbox(
+                "Filtrar por cargo", [None, *cargo_labels],
+                format_func=lambda value: "Todos los cargos" if value is None else cargo_labels[value],
+            )
+            with factory() as session:
+                associations = list_area_cargos(
+                    session, st.session_state.user_id, area_filter, cargo_filter
+                )
+                association_rows = [
+                    {"Área": association.area.nombre_area,
+                     "Cargo": association.cargo.nombre_cargo,
+                     "ID área": association.id_area,
+                     "ID cargo": association.id_cargo}
+                    for association in associations
+                ]
+            if association_rows:
+                st.dataframe(association_rows, hide_index=True, use_container_width=True)
+                association_options = {
+                    (row["ID área"], row["ID cargo"]): f'{row["Área"]} — {row["Cargo"]}'
+                    for row in association_rows
+                }
+                selected_pair = st.selectbox(
+                    "Seleccionar asociación para quitar",
+                    list(association_options), format_func=association_options.get,
+                )
+                if st.button("Quitar asociación seleccionada", key="remove_area_cargo"):
+                    with factory.begin() as session:
+                        remove_area_cargo(
+                            session, st.session_state.user_id,
+                            selected_pair[0], selected_pair[1],
+                        )
+                    st.success("Asociación eliminada.")
+                    st.rerun()
+            else:
+                st.info("No hay asociaciones para los filtros seleccionados.")
 except (ValueError, PermissionError) as exc:
     st.error(str(exc))
 except SQLAlchemyError:
