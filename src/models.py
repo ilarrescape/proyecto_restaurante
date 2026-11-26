@@ -2,19 +2,21 @@
 from __future__ import annotations
 
 from datetime import date, datetime
+from decimal import Decimal
 from typing import Optional
 
 from sqlalchemy import (
+    BIGINT,
     Boolean,
     Date,
     DateTime,
+    DECIMAL,
     ForeignKey,
     String,
     CheckConstraint,
     Index,
     UniqueConstraint,
     Integer,
-    String,
     Text,
 )
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
@@ -301,14 +303,14 @@ class Usuario(Base):
     )
 
     dni_empleado: Mapped[Optional[int]] = mapped_column(
-        BIGINT(unsigned=True),
+        BIGINT,
         ForeignKey("empleado.dni"),
         unique=True,
         nullable=True
     )
 
     cuit_restaurante: Mapped[Optional[int]] = mapped_column(
-        BIGINT(unsigned=True),
+        BIGINT,
         ForeignKey("restaurante.cuit"),
         nullable=True
     )

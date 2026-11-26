@@ -2,7 +2,6 @@ from datetime import datetime
 import bcrypt
 from sqlalchemy import select
 from src.models import Usuario, Rol
-import getpass
 
 
 PERMISSIONS = {
@@ -20,12 +19,10 @@ def hash_password(password):
     return bcrypt.hashpw(password.encode("utf-8"), bcrypt.gensalt()).decode("ascii")
 
 
-cadena = input("Escriba el password")
-
+cadena = input("Escriba el password: ")
 cadena_codificada = cadena.encode("utf-8")
-if not cadena or len(cadena_codificada)>72:
-    print("la cadena no puede estar vacía y debe tener una longitud inferior a 72 bytes en utf-8")
-
+if not cadena or len(cadena_codificada) > 72:
+    print("La contraseña no puede estar vacía y debe tener como máximo 72 bytes UTF-8.")
 
 
 # Se compara la contraseña recibida con el hash; nunca se descifra.
