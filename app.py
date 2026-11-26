@@ -7,6 +7,13 @@ from src.database import make_session_factory
 from src.models import Usuario, Restaurante, Rol, Empleado
 from src.services.auth import authenticate, PERMISSIONS
 from src.services.admin import create_restaurant, create_user, update_user
+from src.services.cargo import create_cargo, delete_cargo, list_cargos, update_cargo
+from src.services.tipo_comprobante import (
+    create_tipo_comprobante,
+    delete_tipo_comprobante,
+    list_tipos_comprobante,
+    update_tipo_comprobante,
+)
 
 st.set_page_config(page_title="Gestión de Restaurante", page_icon="🍽️")
 
@@ -59,7 +66,10 @@ try:
         st.info("Los módulos operativos todavía no están implementados.")
         st.stop()
 
-    section = st.sidebar.radio("Administración", ["Restaurantes", "Usuarios"])
+    section = st.sidebar.radio(
+        "Administración",
+        ["Restaurantes", "Usuarios", "Cargos", "Tipos de comprobante"],
+    )
     with factory() as session:
         restaurants = {r.cuit: r.nombre_fantasia for r in session.scalars(select(Restaurante))}
         roles = {r.id_rol: r.nombre_rol for r in session.scalars(select(Rol))}
@@ -78,7 +88,7 @@ try:
                 create_restaurant(session, st.session_state.user_id, int(cuit), razon, nombre, direccion, ciudad)
             st.success("Restaurante creado. Disponible en la sección Usuarios.")
         st.write([{"CUIT": key, "Nombre": value} for key, value in restaurants.items()])
-    else:
+    elif section == "Usuarios":
         st.subheader("Crear usuario")
         if not roles:
             st.warning("Ejecutá primero python -m scripts.bootstrap para cargar los roles y el administrador.")
@@ -114,6 +124,100 @@ try:
                 with factory.begin() as session:
                     update_user(session, st.session_state.user_id, selected.id_usuario, role_id, restaurant_id, employee_id, active)
                 st.success("Usuario actualizado.")
+                st.rerun()
+    elif section == "Cargos":
+        st.subheader("Administrar cargos")
+        with st.form("create_cargo"):
+            cargo_name = st.text_input("Nombre del cargo", max_chars=100)
+            create = st.form_submit_button("Registrar cargo")
+        if create:
+            with factory.begin() as session:
+                create_cargo(session, st.session_state.user_id, cargo_name)
+            st.success("Cargo registrado.")
+            st.rerun()
+
+        with factory() as session:
+            cargos = list_cargos(session, st.session_state.user_id)
+        st.subheader("Cargos registrados")
+        if not cargos:
+            st.info("Todavía no hay cargos registrados.")
+        else:
+            st.dataframe(
+                [{"ID": cargo.id_cargo, "Cargo": cargo.nombre_cargo} for cargo in cargos],
+                hide_index=True,
+                use_container_width=True,
+            )
+            selected_id = st.selectbox(
+                "Seleccionar cargo", [cargo.id_cargo for cargo in cargos],
+                format_func=lambda cargo_id: next(
+                    cargo.nombre_cargo for cargo in cargos if cargo.id_cargo == cargo_id
+                ),
+            )
+            selected = next(cargo for cargo in cargos if cargo.id_cargo == selected_id)
+            with st.form(f"edit_cargo_{selected_id}"):
+                edited_name = st.text_input(
+                    "Modificar nombre", value=selected.nombre_cargo, max_chars=100
+                )
+                update = st.form_submit_button("Guardar cambios")
+            if update:
+                with factory.begin() as session:
+                    update_cargo(session, st.session_state.user_id, selected_id, edited_name)
+                st.success("Cargo actualizado.")
+                st.rerun()
+            if st.button("Eliminar cargo seleccionado", key=f"delete_cargo_{selected_id}"):
+                with factory.begin() as session:
+                    delete_cargo(session, st.session_state.user_id, selected_id)
+                st.success("Cargo eliminado.")
+                st.rerun()
+    else:
+        st.subheader("Administrar tipos de comprobante")
+        with st.form("create_tipo_comprobante"):
+            tipo_name = st.text_input("Nombre del tipo de comprobante", max_chars=100)
+            create = st.form_submit_button("Registrar tipo")
+        if create:
+            with factory.begin() as session:
+                create_tipo_comprobante(session, st.session_state.user_id, tipo_name)
+            st.success("Tipo de comprobante registrado.")
+            st.rerun()
+
+        with factory() as session:
+            tipos = list_tipos_comprobante(session, st.session_state.user_id)
+        st.subheader("Tipos registrados")
+        if not tipos:
+            st.info("Todavía no hay tipos de comprobante registrados.")
+        else:
+            st.dataframe(
+                [{"ID": tipo.id_tipo_comprobante,
+                  "Tipo de comprobante": tipo.nombre_tipo_comprobante} for tipo in tipos],
+                hide_index=True,
+                use_container_width=True,
+            )
+            selected_id = st.selectbox(
+                "Seleccionar tipo", [tipo.id_tipo_comprobante for tipo in tipos],
+                format_func=lambda tipo_id: next(
+                    tipo.nombre_tipo_comprobante for tipo in tipos
+                    if tipo.id_tipo_comprobante == tipo_id
+                ),
+            )
+            selected = next(tipo for tipo in tipos if tipo.id_tipo_comprobante == selected_id)
+            with st.form(f"edit_tipo_comprobante_{selected_id}"):
+                edited_name = st.text_input(
+                    "Modificar nombre", value=selected.nombre_tipo_comprobante, max_chars=100
+                )
+                update = st.form_submit_button("Guardar cambios")
+            if update:
+                with factory.begin() as session:
+                    update_tipo_comprobante(
+                        session, st.session_state.user_id, selected_id, edited_name
+                    )
+                st.success("Tipo de comprobante actualizado.")
+                st.rerun()
+            if st.button(
+                "Eliminar tipo seleccionado", key=f"delete_tipo_comprobante_{selected_id}"
+            ):
+                with factory.begin() as session:
+                    delete_tipo_comprobante(session, st.session_state.user_id, selected_id)
+                st.success("Tipo de comprobante eliminado.")
                 st.rerun()
 except (ValueError, PermissionError) as exc:
     st.error(str(exc))
