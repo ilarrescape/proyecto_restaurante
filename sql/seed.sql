@@ -29,6 +29,7 @@ FROM estado_condicion WHERE nombre_estado_condicion = 'Activo';
 
 INSERT IGNORE INTO area (nombre_area) VALUES
 ('Cocina'), ('Salón'), ('Caja'), ('Administración');
+-- hola mundo
 
 INSERT IGNORE INTO cargo (nombre_cargo) VALUES
 ('Cocinero/a'), ('Mozo/a'), ('Cajero/a'), ('Encargado/a'), ('Gerente');
