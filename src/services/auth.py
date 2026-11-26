@@ -17,6 +17,7 @@ PERMISSIONS = {
 def hash_password(password):
     if not password or len(password.encode("utf-8")) > 72:
         raise ValueError("La contraseña debe contener entre 1 y 72 bytes UTF-8.")
+    # pepitoñaña123
     return bcrypt.hashpw(password.encode("utf-8"), bcrypt.gensalt()).decode("ascii")
 
 

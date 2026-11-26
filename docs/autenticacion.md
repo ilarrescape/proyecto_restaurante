@@ -20,7 +20,7 @@ Un bloqueo de MySQL serializa inicializaciones concurrentes y se libera al final
 Se consulta el email y se verifica la contraseña contra `password_hash` con `bcrypt.checkpw`. El hash no se descifra. Las cuentas inactivas no pueden ingresar; el mensaje de error es común para usuario ausente, contraseña incorrecta o cuenta inactiva. Se registra `ultimo_acceso` al autenticar.
 
 La sesión de Streamlit guarda el identificador del usuario y la última actividad. Cada ejecución vuelve a consultar la cuenta y su rol. Cerrar sesión elimina el estado; `SESSION_TIMEOUT_MINUTES` define la inactividad permitida (120 minutos por defecto), verificada en la siguiente interacción. No hay sesión persistente entre navegadores. Las contraseñas admiten hasta 72 bytes UTF-8 por el límite de bcrypt; se rechazan las vacías o superiores a ese límite.
-
+# -ilarrescapem@gmail.com -pepito123 #hacker -
 ## Administración
 
 Tras ingresar, ADMIN puede crear restaurantes con ciudad, CUIT, razón social, nombre y dirección. Después puede crear usuarios y modificar su rol, restaurante, empleado asociado y estado activo. Los empleados seleccionados deben existir y estar vinculados al restaurante en `restaurante_cargo_empleado`. La carga de empleados y sus cargos sigue fuera del alcance de esta interfaz.
