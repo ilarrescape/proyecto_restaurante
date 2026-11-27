@@ -27,6 +27,14 @@ from services.restaurante_cargo_empleado_service import (
     modificar_asignacion,
     eliminar_asignacion
 )
+from services.estado_condicion import (
+    list_estados_condicion, get_estado_condicion, create_estado_condicion,
+    update_estado_condicion, delete_estado_condicion,
+)
+from services.condicion import (
+    list_condiciones, get_condicion, create_condicion,
+    update_condicion, delete_condicion,
+)
 
 
 # Configuración de la aplicación.
@@ -35,6 +43,197 @@ st.set_page_config(
     page_icon="🍽️",
     layout="wide"
 )
+
+
+modulo = st.sidebar.selectbox(
+    "Módulo",
+    ["Gestión actual", "Estados de condición", "Condiciones"],
+)
+
+
+actor_id = None
+if modulo != "Gestión actual":
+    actor_id = int(st.sidebar.number_input(
+        "ID de usuario ADMIN",
+        min_value=1,
+        step=1,
+        key="admin_actor_id",
+        help="Las operaciones del catálogo requieren un usuario con rol ADMIN.",
+    ))
+
+
+def mostrar_estados_condicion():
+    st.title("Gestión de estados de condición")
+    st.caption("Administrá los estados y la empresa de capacitación asociada.")
+    tabs = st.tabs(["Crear", "Consultar", "Modificar", "Eliminar"])
+
+    with tabs[0]:
+        with st.form("crear_estado_condicion"):
+            nombre = st.text_input("Nombre del estado", max_chars=100)
+            empresa = st.text_input("Empresa de capacitación (opcional)", max_chars=150)
+            enviar = st.form_submit_button("Crear estado")
+        if enviar:
+            try:
+                with SessionLocal() as db:
+                    estado = create_estado_condicion(db, actor_id, nombre, empresa)
+                    db.commit()
+                    st.success(f"Estado creado con ID {estado.id_estado_condicion}.")
+            except Exception as error:
+                st.error(f"No se pudo crear el estado: {error}")
+
+    with tabs[1]:
+        if st.button("Mostrar estados", key="mostrar_estados_condicion"):
+            try:
+                with SessionLocal() as db:
+                    estados = list_estados_condicion(db, actor_id)
+                    datos = [{"ID": e.id_estado_condicion, "Nombre": e.nombre_estado_condicion,
+                              "Empresa de capacitación": e.empresa_de_capacitacion or ""} for e in estados]
+                if datos:
+                    st.dataframe(datos, use_container_width=True)
+                else:
+                    st.info("No hay estados de condición registrados.")
+            except Exception as error:
+                st.error(f"No se pudieron consultar los estados: {error}")
+        with st.form("buscar_estado_condicion"):
+            estado_id = st.number_input("ID del estado", min_value=1, step=1, key="buscar_estado_id")
+            buscar = st.form_submit_button("Buscar estado")
+        if buscar:
+            try:
+                with SessionLocal() as db:
+                    estado = get_estado_condicion(db, actor_id, int(estado_id))
+                    resultado = {"ID": estado.id_estado_condicion, "Nombre": estado.nombre_estado_condicion,
+                                 "Empresa de capacitación": estado.empresa_de_capacitacion or ""}
+                st.write(resultado)
+            except Exception as error:
+                st.error(f"No se encontró el estado: {error}")
+
+    with tabs[2]:
+        with st.form("modificar_estado_condicion"):
+            estado_id = st.number_input("ID del estado a modificar", min_value=1, step=1, key="mod_estado_id")
+            nombre = st.text_input("Nuevo nombre", max_chars=100, key="mod_estado_nombre")
+            empresa = st.text_input("Nueva empresa de capacitación (opcional)", max_chars=150, key="mod_estado_empresa")
+            enviar = st.form_submit_button("Guardar cambios")
+        if enviar:
+            try:
+                with SessionLocal() as db:
+                    update_estado_condicion(db, actor_id, int(estado_id), nombre, empresa)
+                    db.commit()
+                st.success("Estado modificado correctamente.")
+            except Exception as error:
+                st.error(f"No se pudo modificar el estado: {error}")
+
+    with tabs[3]:
+        with st.form("eliminar_estado_condicion"):
+            estado_id = st.number_input("ID del estado a eliminar", min_value=1, step=1, key="del_estado_id")
+            enviar = st.form_submit_button("Eliminar estado")
+        if enviar:
+            try:
+                with SessionLocal() as db:
+                    delete_estado_condicion(db, actor_id, int(estado_id))
+                    db.commit()
+                st.success("Estado eliminado correctamente.")
+            except Exception as error:
+                st.error(f"No se pudo eliminar el estado: {error}")
+
+
+def mostrar_condiciones():
+    st.title("Gestión de condiciones")
+    st.caption("Cada condición debe estar asociada a un estado existente.")
+    try:
+        with SessionLocal() as db:
+            estados = list_estados_condicion(db, actor_id)
+            opciones_estado = {
+                f"{e.id_estado_condicion} — {e.nombre_estado_condicion}": e.id_estado_condicion
+                for e in estados
+            }
+    except Exception as error:
+        st.error(f"No se pudieron cargar los estados: {error}")
+        return
+    tabs = st.tabs(["Crear", "Consultar", "Modificar", "Eliminar"])
+
+    with tabs[0]:
+        if not opciones_estado:
+            st.info("Primero creá al menos un estado de condición.")
+        else:
+            with st.form("crear_condicion"):
+                nombre = st.text_input("Nombre de la condición", max_chars=120)
+                estado_label = st.selectbox("Estado", list(opciones_estado))
+                enviar = st.form_submit_button("Crear condición")
+            if enviar:
+                try:
+                    with SessionLocal() as db:
+                        condicion = create_condicion(db, actor_id, nombre, opciones_estado[estado_label])
+                        db.commit()
+                        st.success(f"Condición creada con ID {condicion.id_condicion}.")
+                except Exception as error:
+                    st.error(f"No se pudo crear la condición: {error}")
+
+    with tabs[1]:
+        if st.button("Mostrar condiciones", key="mostrar_condiciones"):
+            try:
+                with SessionLocal() as db:
+                    condiciones = list_condiciones(db, actor_id)
+                    datos = [{"ID": c.id_condicion, "Nombre": c.nombre_condicion,
+                              "ID Estado": c.id_estado_condicion,
+                              "Estado": c.estado.nombre_estado_condicion} for c in condiciones]
+                if datos:
+                    st.dataframe(datos, use_container_width=True)
+                else:
+                    st.info("No hay condiciones registradas.")
+            except Exception as error:
+                st.error(f"No se pudieron consultar las condiciones: {error}")
+        with st.form("buscar_condicion"):
+            condicion_id = st.number_input("ID de la condición", min_value=1, step=1, key="buscar_condicion_id")
+            buscar = st.form_submit_button("Buscar condición")
+        if buscar:
+            try:
+                with SessionLocal() as db:
+                    condicion = get_condicion(db, actor_id, int(condicion_id))
+                    resultado = {"ID": condicion.id_condicion, "Nombre": condicion.nombre_condicion,
+                                 "ID Estado": condicion.id_estado_condicion,
+                                 "Estado": condicion.estado.nombre_estado_condicion}
+                st.write(resultado)
+            except Exception as error:
+                st.error(f"No se encontró la condición: {error}")
+
+    with tabs[2]:
+        if not opciones_estado:
+            st.info("No hay estados disponibles para asignar.")
+        else:
+            with st.form("modificar_condicion"):
+                condicion_id = st.number_input("ID de la condición a modificar", min_value=1, step=1, key="mod_condicion_id")
+                nombre = st.text_input("Nuevo nombre", max_chars=120, key="mod_condicion_nombre")
+                estado_label = st.selectbox("Nuevo estado", list(opciones_estado), key="mod_condicion_estado")
+                enviar = st.form_submit_button("Guardar cambios")
+            if enviar:
+                try:
+                    with SessionLocal() as db:
+                        update_condicion(db, actor_id, int(condicion_id), nombre, opciones_estado[estado_label])
+                        db.commit()
+                    st.success("Condición modificada correctamente.")
+                except Exception as error:
+                    st.error(f"No se pudo modificar la condición: {error}")
+
+    with tabs[3]:
+        with st.form("eliminar_condicion"):
+            condicion_id = st.number_input("ID de la condición a eliminar", min_value=1, step=1, key="del_condicion_id")
+            enviar = st.form_submit_button("Eliminar condición")
+        if enviar:
+            try:
+                with SessionLocal() as db:
+                    delete_condicion(db, actor_id, int(condicion_id))
+                    db.commit()
+                st.success("Condición eliminada correctamente.")
+            except Exception as error:
+                st.error(f"No se pudo eliminar la condición: {error}")
+
+
+if modulo == "Estados de condición":
+    mostrar_estados_condicion()
+    st.stop()
+elif modulo == "Condiciones":
+    mostrar_condiciones()
+    st.stop()
 
 
 def validar_cuit(cuit):
